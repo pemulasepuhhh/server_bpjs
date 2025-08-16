@@ -1,22 +1,54 @@
 <?php
-header('Content-Type: application/json');
+session_start();
+if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'User') {
+    exit("Akses ditolak");
+}
+
+$cabangId = $_SESSION['cabang'] ?? 0;
+if (!$cabangId) {
+    exit("Cabang tidak ditemukan");
+}
 
 $conn = new mysqli("localhost", "root", "", "tenaga_sehat");
 if ($conn->connect_error) {
-    die(json_encode(['error' => 'Koneksi gagal']));
+    die("Koneksi gagal: " . $conn->connect_error);
 }
 
-$sql = "SELECT aset.*, kategori_aset.kategori, cabang.nama_cabang 
+$sql = "SELECT aset.*, kategori_aset.kategori 
         FROM aset
         LEFT JOIN kategori_aset ON aset.id_kategori = kategori_aset.id
-        LEFT JOIN cabang ON aset.cabang_id = cabang.id";
+        WHERE aset.cabang_id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $cabangId);
+$stmt->execute();
+$result = $stmt->get_result();
 
-$result = $conn->query($sql);
-
-$data = [];
-while ($row = $result->fetch_assoc()) {
-    $data[] = $row;
+function getBadgeColor($kondisi)
+{
+    switch (strtolower($kondisi)) {
+        case 'baik':
+            return 'success';
+        case 'rusak':
+            return 'danger';
+        case 'habis':
+            return 'warning';
+        case 'service':
+            return 'primary';
+        default:
+            return 'secondary';
+    }
 }
 
-echo json_encode(['data' => $data]);
+while ($row = $result->fetch_assoc()) {
+    $badge = getBadgeColor($row['kondisi']);
+    echo "<tr>
+            <td>" . htmlspecialchars($row['kode_aset']) . "</td>
+            <td>" . htmlspecialchars($row['nama_aset']) . "</td>
+            <td>" . htmlspecialchars($row['kategori']) . "</td>
+            <td>" . htmlspecialchars($row['deskripsi']) . "</td>
+            <td><span class='badge bg-$badge'>" . htmlspecialchars($row['kondisi']) . "</span></td>
+        </tr>";
+}
+
+$stmt->close();
 $conn->close();

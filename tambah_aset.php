@@ -2,19 +2,21 @@
 session_start();
 require '../config/koneksi.php';
 
-// Cek login dan role admin
-if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'Admin') {
+// Cek login dan role user
+if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'User') {
     header("Location: ../../login.php");
     exit;
 }
 
+$cabang_id = $_SESSION['cabang'];
 $username = $_SESSION['username'];
 
-// Ambil daftar cabang dari database
-$stmtCabang = $conn->prepare("SELECT id, nama_cabang FROM cabang ORDER BY nama_cabang");
+// Ambil nama cabang dari database
+$stmtCabang = $conn->prepare("SELECT nama_cabang FROM cabang WHERE id = ?");
+$stmtCabang->bind_param("i", $cabang_id);
 $stmtCabang->execute();
-$resultCabang = $stmtCabang->get_result();
-$cabangList = $resultCabang->fetch_all(MYSQLI_ASSOC);
+$stmtCabang->bind_result($nama_cabang);
+$stmtCabang->fetch();
 $stmtCabang->close();
 
 // Daftar kategori manual
@@ -33,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama_aset   = $_POST['nama_aset'];
     $deskripsi   = $_POST['deskripsi'];
     $kategori    = $_POST['kategori'];
-    $cabang_id   = $_POST['cabang_id'];
     $kondisi     = "baik"; // otomatis "baik"
 
     // Pastikan kategori yang dipilih ada di daftar
@@ -136,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <header>
         <h2><i class="fas fa-plus-circle"></i> Tambah Aset</h2>
-        <p>Login sebagai: <?= htmlspecialchars($username) ?> (Admin)</p>
+        <p>Login sebagai: <?= htmlspecialchars($username) ?> | Cabang: <?= htmlspecialchars($nama_cabang) ?> (ID: <?= htmlspecialchars($cabang_id) ?>)</p>
     </header>
 
     <div class="container">
@@ -174,17 +175,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="col-md-6">
-                    <label for="cabang_id">Cabang</label>
-                    <select name="cabang_id" id="cabang_id" class="form-select" required>
-                        <option value="">-- Pilih Cabang --</option>
-                        <?php foreach ($cabangList as $cabang) : ?>
-                            <option value="<?= htmlspecialchars($cabang['id']) ?>"><?= htmlspecialchars($cabang['nama_cabang']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label>Cabang</label>
+                    <input type="text" class="form-control" value="<?= htmlspecialchars($nama_cabang) ?>" disabled>
                 </div>
 
                 <div class="col-12 text-end">
-                    <a href="data_aset.php" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
+                    <a href="dashboard_cabang.php" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
                     <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Simpan</button>
                 </div>
             </form>
