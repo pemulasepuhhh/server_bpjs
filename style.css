@@ -1,0 +1,6 @@
+body { background: #f8fafb; }
+.sidebar .nav-link.active, .sidebar .nav-link:hover { background: #e6f0ff; }
+.main-content { min-height: 100vh; }
+.card { border-radius: 1.1rem; }
+.navbar { border-radius: 0 0 1.1rem 1.1rem; }
+
